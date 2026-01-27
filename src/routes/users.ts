@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { supabase } from '../lib/supabase';
+import { getCookie } from 'hono/cookie';
 
 type HonoEnv = {
   Variables: {
@@ -10,13 +11,18 @@ type HonoEnv = {
 const app = new Hono<HonoEnv>();
 
 const authMiddleware = async (c: any, next: any) => {
-  const authHeader = c.req.header('Authorization');
+let token = getCookie(c, 'auth_token');
   
-  if (!authHeader) {
-    return c.json({ error: 'No authorization header' }, 401);
+  if (!token) {
+    const authHeader = c.req.header('Authorization');
+    if (authHeader) {
+      token = authHeader.replace('Bearer ', '');
+    }
   }
 
-  const token = authHeader.replace('Bearer ', '');
+  if (!token) {
+    return c.json({ error: 'No authorization token' }, 401);
+  }
 
   try {
     const { data: { user }, error } = await supabase.auth.getUser(token);
