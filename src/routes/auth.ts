@@ -1,7 +1,18 @@
 import { Hono } from 'hono';
 import { supabase } from '../lib/supabase';
+import { setCookie, deleteCookie, getCookie } from 'hono/cookie';
 
 const app = new Hono();
+
+const COOKIE_OPTIONS = {
+  httpOnly: true,  
+   secure: false,     // Not accessible via JavaScript (XSS protection)
+  //secure: process.env.NODE_ENV === 'production',  // HTTPS only in production
+  sameSite: 'Lax' as const,     // CSRF protection
+  maxAge: 60 * 60 * 24 * 7,     // 7 days
+  path: '/',
+  domain: 'localhost' 
+};
 
 // POST /api/auth/signup - Create new user
 app.post('/signup', async (c) => {
@@ -31,14 +42,25 @@ app.post('/signup', async (c) => {
     if (profileError) throw profileError;
 
     // Create user stats
-    await supabase
-      .from('user_stats')
-      .insert([{
-        user_id: authData.user.id,
-        recipes_cooked: 0,
-        total_cooking_time: 0,
-        reviews_written: 0
-      }]);
+    // await supabase
+    //   .from('user_stats')
+    //   .insert([{
+    //     user_id: authData.user.id,
+    //     recipes_cooked: 0,
+    //     total_cooking_time: 0,
+    //     reviews_written: 0
+    //   }]);
+
+    // Sign in the user to get a session
+    const { data: sessionData, error: sessionError } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (sessionError) throw sessionError;
+
+    setCookie(c, 'auth_token', sessionData.session.access_token, COOKIE_OPTIONS);
+    setCookie(c, 'refresh_token', sessionData.session.refresh_token, COOKIE_OPTIONS);
 
     return c.json({ 
       message: 'User created successfully',
@@ -59,8 +81,8 @@ app.post('/login', async (c) => {
       email,
       password
     });
-    console.log('Supabase login response data:', data);
-    console.log('Supabase login response error:', error);
+    // console.log('Supabase login response data:', data);
+    // console.log('Supabase login response error:', error);
     if (error) throw error;
 
     // Get user profile
@@ -69,6 +91,9 @@ app.post('/login', async (c) => {
       .select('*')
       .eq('id', data.user.id)
       .single();
+
+    setCookie(c, 'auth_token', data.session.access_token, COOKIE_OPTIONS);
+    setCookie(c, 'refresh_token', data.session.refresh_token, COOKIE_OPTIONS);
 
     return c.json({
       access_token: data.session.access_token,
@@ -87,8 +112,14 @@ app.post('/login', async (c) => {
 // POST /api/auth/logout - Logout user
 app.post('/logout', async (c) => {
   try {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+
+     deleteCookie(c, 'auth_token');
+    deleteCookie(c, 'refresh_token');
+
+    const token = getCookie(c, 'auth_token');
+    if (token) {
+      await supabase.auth.signOut();
+    }
 
     return c.json({ message: 'Logged out successfully' });
   } catch (error: any) {
@@ -98,21 +129,30 @@ app.post('/logout', async (c) => {
 
 // GET /api/auth/me - Get current user
 app.get('/me', async (c) => {
-  try {
-    const authHeader = c.req.header('Authorization');
-    if (!authHeader) throw new Error('No authorization header');
-
-    const token = authHeader.replace('Bearer ', '');
+try {
+    // Get token from cookie instead of Authorization header
+    const token = getCookie(c, 'auth_token');
+     console.log('🍪 Cookie token:', token ? 'Found' : 'Not found');
+    
+    if (!token) {
+        console.log('❌ No auth_token cookie');
+      return c.json({ error: 'Not authenticated' }, 401);
+    }
 
     const { data: { user }, error } = await supabase.auth.getUser(token);
-    if (error) throw error;
+     if (error) {
+      console.log('❌ Invalid token:', error);
+      throw error;
+    }
 
-    // Get profile
+    
+
     if(!user){
-     throw new Error('User not found');
-    } 
-    else{
-        const { data: profile } = await supabase
+        return c.json({ error: 'Not authenticated' }, 401);
+    }
+     console.log('✅ User authenticated:', user.email);
+    // Get profile
+    const { data: profile } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
@@ -125,8 +165,36 @@ app.get('/me', async (c) => {
         ...profile
       }
     });
-    }
+  } catch (error: any) {
+    return c.json({ error: error.message }, 401);
+  }
+});
+
+
+
+
+
+// POST /api/auth/refresh - Refresh token
+app.post('/refresh', async (c) => {
+  try {
+    const refreshToken = getCookie(c, 'refresh_token');
     
+    
+    if (!refreshToken) {
+      return c.json({ error: 'No refresh token' }, 401);
+    }
+
+    const { data, error } = await supabase.auth.refreshSession({
+      refresh_token: refreshToken
+    });
+
+    if (error) throw error;
+
+    // Update cookies with new tokens
+    setCookie(c, 'auth_token', data.session?.access_token || '', COOKIE_OPTIONS);
+    setCookie(c, 'refresh_token', data.session?.refresh_token || '', COOKIE_OPTIONS);
+
+    return c.json({ message: 'Token refreshed' });
   } catch (error: any) {
     return c.json({ error: error.message }, 401);
   }
