@@ -5,11 +5,13 @@ import { setCookie, deleteCookie, getCookie } from 'hono/cookie';
 const app = new Hono();
 
 const COOKIE_OPTIONS = {
-  httpOnly: true,      // Not accessible via JavaScript (XSS protection)
-  secure: process.env.NODE_ENV === 'production',  // HTTPS only in production
+  httpOnly: true,  
+   secure: false,     // Not accessible via JavaScript (XSS protection)
+  //secure: process.env.NODE_ENV === 'production',  // HTTPS only in production
   sameSite: 'Lax' as const,     // CSRF protection
   maxAge: 60 * 60 * 24 * 7,     // 7 days
-  path: '/'
+  path: '/',
+  domain: 'localhost' 
 };
 
 // POST /api/auth/signup - Create new user
@@ -130,17 +132,25 @@ app.get('/me', async (c) => {
 try {
     // Get token from cookie instead of Authorization header
     const token = getCookie(c, 'auth_token');
+     console.log('🍪 Cookie token:', token ? 'Found' : 'Not found');
     
     if (!token) {
+        console.log('❌ No auth_token cookie');
       return c.json({ error: 'Not authenticated' }, 401);
     }
 
     const { data: { user }, error } = await supabase.auth.getUser(token);
-    if (error) throw error;
+     if (error) {
+      console.log('❌ Invalid token:', error);
+      throw error;
+    }
+
+    
 
     if(!user){
         return c.json({ error: 'Not authenticated' }, 401);
     }
+     console.log('✅ User authenticated:', user.email);
     // Get profile
     const { data: profile } = await supabase
       .from('profiles')
@@ -160,10 +170,15 @@ try {
   }
 });
 
+
+
+
+
 // POST /api/auth/refresh - Refresh token
 app.post('/refresh', async (c) => {
   try {
     const refreshToken = getCookie(c, 'refresh_token');
+    
     
     if (!refreshToken) {
       return c.json({ error: 'No refresh token' }, 401);
