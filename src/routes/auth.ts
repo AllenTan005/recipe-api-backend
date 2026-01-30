@@ -6,7 +6,7 @@ const app = new Hono();
 
 const COOKIE_OPTIONS = {
   httpOnly: true,  
-   secure: false,     // Not accessible via JavaScript (XSS protection)
+   secure: true,     // Not accessible via JavaScript (XSS protection)
   //secure: process.env.NODE_ENV === 'production',  // HTTPS only in production
   sameSite: 'Lax' as const,     // CSRF protection
   maxAge: 60 * 60 * 24 * 7,     // 7 days
