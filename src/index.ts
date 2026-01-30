@@ -7,15 +7,33 @@ import authRoutes from './routes/auth';  // Add this
 
 const app = new Hono();
 
+const allowedOrigins = [
+  'http://localhost:4200',
+  process.env.FRONTEND_URL,
+  // Add your production URL here after deploying frontend
+  // 'https://your-app.vercel.app'
+].filter(Boolean);
+
 app.use('/*', cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:4200',
+  origin: (origin) => {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return '*';
+    // Check if origin is in allowed list
+    if (allowedOrigins.includes(origin)) return origin;
+    // Default to first allowed origin
+    return allowedOrigins[0] || '*';
+  },
   credentials: true,
-   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
 }));
 
 app.get('/', (c) => {
-  return c.json({ message: 'Recipe API is running!' });
+  return c.json({ 
+    message: 'Recipe API is running!',
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
 // Routes
@@ -27,6 +45,8 @@ app.route('/api/auth', authRoutes);  // Add this
 const port = process.env.PORT || 3000;
 
 console.log(`🚀 Server running on http://localhost:${port}`);
+console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+console.log(`🌐 Allowed origins:`, allowedOrigins);
 
 export default {
   port,
