@@ -9,6 +9,7 @@ const app = new Hono();
 
 const allowedOrigins = [
   'http://localhost:4200',
+  'https://recipe-app-ashen-theta.vercel.app',
   process.env.FRONTEND_URL,
   // Add your production URL here after deploying frontend
   // 'https://your-app.vercel.app'
