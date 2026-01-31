@@ -8,10 +8,10 @@ const COOKIE_OPTIONS = {
   httpOnly: true,  
    secure: true,     // Not accessible via JavaScript (XSS protection)
   //secure: process.env.NODE_ENV === 'production',  // HTTPS only in production
-  sameSite: 'Lax' as const,     // CSRF protection
+  sameSite: 'None' as const,     // CSRF protection
   maxAge: 60 * 60 * 24 * 7,     // 7 days
   path: '/',
-  domain: 'localhost' 
+  domain: undefined  
 };
 
 // POST /api/auth/signup - Create new user
