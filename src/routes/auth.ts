@@ -81,8 +81,8 @@ app.post('/login', async (c) => {
       email,
       password
     });
-    // console.log('Supabase login response data:', data);
-    // console.log('Supabase login response error:', error);
+    console.log('Supabase login response data:', data);
+    console.log('Supabase login response error:', error);
     if (error) throw error;
 
     // Get user profile
