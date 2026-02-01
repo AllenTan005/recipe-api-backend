@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { supabase } from '../lib/supabase';
-import { getCookie } from 'hono/cookie';
+import { getCookie} from 'hono/cookie';
 
 type HonoEnv = {
   Variables: {
@@ -10,33 +10,61 @@ type HonoEnv = {
 
 const app = new Hono<HonoEnv>();
 
-const authMiddleware = async (c: any, next: any) => {
-let token = getCookie(c, 'auth_token');
-  
-  if (!token) {
-    const authHeader = c.req.header('Authorization');
-    if (authHeader) {
-      token = authHeader.replace('Bearer ', '');
-    }
-  }
+// const authMiddleware = async (c: any, next: any) => {
+// //let token = getCookie(c, 'auth_token');
+// let token = (await supabase.auth.getSession()).data.session?.access_token;
+// //let headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
+//   if (!token) {
+//     const authHeader = c.req.header('Authorization', `Bearer ${token}`);
+//     if (authHeader) {
+//       token = authHeader.replace('Bearer ', '');
+//     }
+//   }
 
-  if (!token) {
-    return c.json({ error: 'No authorization token' }, 401);
-  }
+//   if (!token) {
+//     return c.json({ error: 'No authorization token' }, 401);
+//   }
 
-  try {
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+//   try {
+//     const { data: { user }, error } = await supabase.auth.getUser(token);
     
-    if (error || !user) {
-      return c.json({ error: 'Invalid token' }, 401);
+//     if (error || !user) {
+//       return c.json({ error: 'Invalid token' }, 401);
+//     }
+
+//     // Store user in context
+//     c.set('user', user);
+//     await next();
+//   } catch (error: any) {
+//     return c.json({ error: 'Authentication failed' }, 401);
+//   }
+// };
+
+const authMiddleware = async (c: any, next: any) => {
+    // 1. Get token strictly from the Authorization header
+    const authHeader = c.req.header('Authorization');
+    const token = authHeader?.replace('Bearer ', '');
+
+    if (!token) {
+        return c.json({ error: 'No authorization token' }, 401);
     }
 
-    // Store user in context
-    c.set('user', user);
-    await next();
-  } catch (error: any) {
-    return c.json({ error: 'Authentication failed' }, 401);
-  }
+    try {
+        // 2. Use getUser(token) to verify the JWT against Supabase
+        // This is the source-of-truth for the server
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+
+        if (error || !user) {
+            return c.json({ error: 'Invalid or expired session' }, 401);
+        }
+
+        // 3. Success! Store user and move on
+        c.set('user', user);
+        await next();
+    } catch (err: any) {
+        // This catches the AuthSessionMissingError gracefully
+        return c.json({ error: 'Session terminated or invalid' }, 401);
+    }
 };
 //Get /api/users/me 
 app.get('/me', authMiddleware, async (c) => {
