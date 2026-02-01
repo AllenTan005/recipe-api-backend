@@ -11,7 +11,7 @@ const COOKIE_OPTIONS = {
   sameSite: 'None' as const,     // CSRF protection
   maxAge: 60 * 60 * 24 * 7,     // 7 days
   path: '/',
-  domain: undefined  
+  domain: 'https://recipe-app-ashen-theta.vercel.app'
 };
 
 // POST /api/auth/signup - Create new user
