@@ -15,15 +15,12 @@ const allowedOrigins = [
   // 'https://your-app.vercel.app'
 ].filter(Boolean);
 
-app.use('/*', cors({
-  origin: (origin) => {
-    // Allow requests with no origin (like mobile apps or curl)
-    if (!origin) return '*';
-    // Check if origin is in allowed list
-    if (allowedOrigins.includes(origin)) return origin;
-    // Default to first allowed origin
-    return allowedOrigins[0] || '*';
-  },
+const isDev = process.env.NODE_ENV === 'development';
+
+app.use('*', cors({
+  origin: isDev 
+    ? 'http://localhost:4200' 
+    : 'https://recipe-app-ashen-theta.vercel.app',
   credentials: true,
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],

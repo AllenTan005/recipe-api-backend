@@ -6,6 +6,8 @@ const app = new Hono();
 // GET /api/recipes - Get all recipes
 app.get('/', async (c) => {
   try {
+    console.log('SUPABASE_URL:', process.env.SUPABASE_URL);
+    console.log('SUPABASE_ANON_KEY exists:', !!process.env.SUPABASE_ANON_KEY);
     const { data: recipes, error } = await supabase
       .from('recipes')
       .select('*')

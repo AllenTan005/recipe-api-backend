@@ -4,15 +4,17 @@ import { setCookie, deleteCookie, getCookie } from 'hono/cookie';
 
 const app = new Hono();
 
+const isDev = process.env.NODE_ENV === 'development';
+
+
 const COOKIE_OPTIONS = {
   httpOnly: true,  
-   secure: true,     // Not accessible via JavaScript (XSS protection)
+   secure: !isDev,     // Not accessible via JavaScript (XSS protection)
   //secure: process.env.NODE_ENV === 'production',  // HTTPS only in production
-  sameSite: 'None' as const,     // CSRF protection
-  maxAge: 60 * 60 * 24 * 7,     // 7 days
+  sameSite: isDev ? 'Lax' : 'None',     // CSRF protection
+  maxAge: 60 * 60 * 24 * 7 * 1000,     // 7 days
   path: '/',
-  domain: 'https://recipe-app-ashen-theta.vercel.app'
-};
+  }as const;
 
 // POST /api/auth/signup - Create new user
 app.post('/signup', async (c) => {
