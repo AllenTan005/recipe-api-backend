@@ -12,7 +12,7 @@ const COOKIE_OPTIONS = {
    secure: !isDev,     // Not accessible via JavaScript (XSS protection)
   //secure: process.env.NODE_ENV === 'production',  // HTTPS only in production
   sameSite: isDev ? 'Lax' : 'None',     // CSRF protection
-  maxAge: 60 * 60 * 24 * 7 * 1000,     // 7 days
+  maxAge: 60 * 60 * 24 * 7 ,     // 7 days
   path: '/',
   }as const;
 
