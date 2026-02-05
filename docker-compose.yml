@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # First API instance
+  api-1:
+    build: .
+    container_name: recipe-api-1
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+    networks:
+      - recipe-network
+
+  # Second API instance
+  api-2:
+    build: .
+    container_name: recipe-api-2
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+    networks:
+      - recipe-network
+
+  # Third API instance
+  api-3:
+    build: .
+    container_name: recipe-api-3
+    ports:
+      - "3002:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+    networks:
+      - recipe-network
+
+  # Nginx load balancer
+  nginx:
+    image: nginx:alpine
+    container_name: recipe-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx-day1.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - api-1
+      - api-2
+      - api-3
+    networks:
+      - recipe-network
+
+networks:
+  recipe-network:
+    driver: bridge
