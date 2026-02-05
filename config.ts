@@ -13,6 +13,6 @@ export const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: !isDev, // false for localhost, true for production
   sameSite: isDev ? 'Lax' : 'None',
-  maxAge: 7 * 24 * 60 * 60 * 1000,
+  maxAge: 7 * 24 * 60 * 60 ,
   path: '/',
 }as const;
